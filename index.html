@@ -3,48 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <title>Juego 2D Pastilla</title>
+
 <style>
 body{
     margin:0;
-    overflow:hidden;
     background:#222;
 }
 
 canvas{
-    background:#444;
     display:block;
     margin:auto;
+    background:#444;
 }
 </style>
+
 </head>
 <body>
 
-<canvas id="game" width="800" height="400"></canvas>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let player = {
+const player = {
     x:100,
     y:300,
     width:40,
     height:20,
     speed:5,
-    dy:0,
-    gravity:0.5,
-    jump: -10,
-    onGround:true
+    velY:0,
+    gravity:0.6,
+    jumpPower:-12,
+    onGround:false
 };
 
-let keys = {};
+const keys = {};
 
-// controles
-document.addEventListener("keydown", (e)=>{
+// Controles
+window.addEventListener("keydown", e=>{
     keys[e.key.toLowerCase()] = true;
 });
 
-document.addEventListener("keyup", (e)=>{
+window.addEventListener("keyup", e=>{
     keys[e.key.toLowerCase()] = false;
 });
 
@@ -62,32 +63,42 @@ function update(){
 
     // salto
     if(keys["w"] && player.onGround){
-        player.dy = player.jump;
+        player.velY = player.jumpPower;
         player.onGround = false;
     }
 
     // gravedad
-    player.dy += player.gravity;
-    player.y += player.dy;
+    player.velY += player.gravity;
+    player.y += player.velY;
 
     // suelo
     if(player.y + player.height >= canvas.height){
         player.y = canvas.height - player.height;
-        player.dy = 0;
+        player.velY = 0;
         player.onGround = true;
+    }
+
+    // limites pantalla
+    if(player.x < 0){
+        player.x = 0;
+    }
+
+    if(player.x + player.width > canvas.width){
+        player.x = canvas.width - player.width;
     }
 }
 
 function draw(){
+
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // suelo
-    ctx.fillStyle="green";
-    ctx.fillRect(0,canvas.height-10,canvas.width,10);
+    ctx.fillStyle = "green";
+    ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
 
     // jugador (pastilla)
-    ctx.fillStyle="red";
-    ctx.fillRect(player.x,player.y,player.width,player.height);
+    ctx.fillStyle = "red";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
 }
 
 function gameLoop(){
