@@ -1,117 +1,144 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Juego Pastilla 2D</title>
-
-<style>
-body{
-    margin:0;
-    background:#222;
-}
-
-canvas{
-    display:block;
-    margin:auto;
-    background:#444;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Laberinto 3D en Primera Persona</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #info {
+      position: absolute; top: 10px; left: 10px;
+      color: white; font-family: sans-serif;
+      background: rgba(0,0,0,0.5); padding: 10px;
+    }
+  </style>
 </head>
-
 <body>
-
-<canvas id="gameCanvas" width="800" height="400"></canvas>
-
+<div id="info">Usa WASD para moverte. Llega al final del laberinto.</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/js/controls/PointerLockControls.js"></script>
 <script>
+  let scene, camera, renderer, controls;
+  let objects = [];
+  let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+  let velocity = new THREE.Vector3();
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+  init();
+  animate();
 
-// generar color aleatorio
-function randomColor(){
-    const r = Math.floor(Math.random()*255);
-    const g = Math.floor(Math.random()*255);
-    const b = Math.floor(Math.random()*255);
-    return "rgb(" + r + "," + g + "," + b + ")";
-}
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x202020);
 
-const player = {
-    x:100,
-    y:300,
-    width:20,
-    height:60, // vertical
-    speed:5,
-    velY:0,
-    gravity:0.6,
-    jumpPower:-12,
-    onGround:false,
-    color: randomColor()
-};
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    
+    // Luz
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(10, 20, 10);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x404040));
 
-const keys = {};
+    // Renderer
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-window.addEventListener("keydown", e=>{
-    keys[e.key.toLowerCase()] = true;
-});
+    // Controles en primera persona
+    controls = new THREE.PointerLockControls(camera, document.body);
+    document.body.addEventListener('click', () => { controls.lock(); });
 
-window.addEventListener("keyup", e=>{
-    keys[e.key.toLowerCase()] = false;
-});
+    // Laberinto (paredes)
+    const wallGeometry = new THREE.BoxGeometry(2, 4, 2);
+    const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x808080 });
 
-function update(){
+    // Ejemplo simple de laberinto
+    const mazeLayout = [
+      [1,1,1,1,1],
+      [1,0,0,0,1],
+      [1,0,1,0,1],
+      [1,0,1,0,1],
+      [1,1,1,0,1],
+      [1,0,0,0,1],
+      [1,1,1,1,1]
+    ];
 
-    if(keys["a"]){
-        player.x -= player.speed;
+    for (let z = 0; z < mazeLayout.length; z++) {
+      for (let x = 0; x < mazeLayout[z].length; x++) {
+        if (mazeLayout[z][x] === 1) {
+          const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+          wall.position.set(x*2, 2, z*2);
+          scene.add(wall);
+          objects.push(wall);
+        }
+      }
     }
 
-    if(keys["d"]){
-        player.x += player.speed;
+    // Piso
+    const floorGeometry = new THREE.PlaneGeometry(50, 50);
+    const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x404040 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+
+    // Evento teclado
+    const onKeyDown = (event) => {
+      switch(event.code){
+        case 'KeyW': moveForward = true; break;
+        case 'KeyS': moveBackward = true; break;
+        case 'KeyA': moveLeft = true; break;
+        case 'KeyD': moveRight = true; break;
+      }
+    }
+    const onKeyUp = (event) => {
+      switch(event.code){
+        case 'KeyW': moveForward = false; break;
+        case 'KeyS': moveBackward = false; break;
+        case 'KeyA': moveLeft = false; break;
+        case 'KeyD': moveRight = false; break;
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Posición inicial
+    controls.getObject().position.set(2, 2, 2);
+    scene.add(controls.getObject());
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    // Movimiento simple
+    const speed = 0.1;
+    velocity.set(0,0,0);
+    if (moveForward) velocity.z -= speed;
+    if (moveBackward) velocity.z += speed;
+    if (moveLeft) velocity.x -= speed;
+    if (moveRight) velocity.x += speed;
+
+    controls.moveRight(velocity.x);
+    controls.moveForward(velocity.z);
+
+    // Detección simple de colisiones
+    const playerPos = controls.getObject().position;
+    for (let obj of objects) {
+      const dx = Math.abs(playerPos.x - obj.position.x);
+      const dz = Math.abs(playerPos.z - obj.position.z);
+      if (dx < 1 && dz < 1) {
+        // Retroceder un poco si choca
+        controls.moveRight(-velocity.x);
+        controls.moveForward(-velocity.z);
+      }
     }
 
-    if(keys["w"] && player.onGround){
-        player.velY = player.jumpPower;
-        player.onGround = false;
-    }
-
-    player.velY += player.gravity;
-    player.y += player.velY;
-
-    // suelo
-    if(player.y + player.height >= canvas.height){
-        player.y = canvas.height - player.height;
-        player.velY = 0;
-        player.onGround = true;
-    }
-
-    // límites pantalla
-    if(player.x < 0) player.x = 0;
-    if(player.x + player.width > canvas.width){
-        player.x = canvas.width - player.width;
-    }
-}
-
-function draw(){
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // suelo
-    ctx.fillStyle = "green";
-    ctx.fillRect(0, canvas.height-10, canvas.width, 10);
-
-    // jugador
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-}
-
-function gameLoop(){
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
-
+    renderer.render(scene, camera);
+  }
 </script>
-
 </body>
 </html>
