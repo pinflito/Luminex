@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juego 2D Pastilla</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#222;
+}
+
+canvas{
+    background:#444;
+    display:block;
+    margin:auto;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="800" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {
+    x:100,
+    y:300,
+    width:40,
+    height:20,
+    speed:5,
+    dy:0,
+    gravity:0.5,
+    jump: -10,
+    onGround:true
+};
+
+let keys = {};
+
+// controles
+document.addEventListener("keydown", (e)=>{
+    keys[e.key.toLowerCase()] = true;
+});
+
+document.addEventListener("keyup", (e)=>{
+    keys[e.key.toLowerCase()] = false;
+});
+
+function update(){
+
+    // izquierda
+    if(keys["a"]){
+        player.x -= player.speed;
+    }
+
+    // derecha
+    if(keys["d"]){
+        player.x += player.speed;
+    }
+
+    // salto
+    if(keys["w"] && player.onGround){
+        player.dy = player.jump;
+        player.onGround = false;
+    }
+
+    // gravedad
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    // suelo
+    if(player.y + player.height >= canvas.height){
+        player.y = canvas.height - player.height;
+        player.dy = 0;
+        player.onGround = true;
+    }
+}
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // suelo
+    ctx.fillStyle="green";
+    ctx.fillRect(0,canvas.height-10,canvas.width,10);
+
+    // jugador (pastilla)
+    ctx.fillStyle="red";
+    ctx.fillRect(player.x,player.y,player.width,player.height);
+}
+
+function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
