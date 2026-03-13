@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Juego 2D Pastilla</title>
+<title>Juego Pastilla 2D</title>
 
 <style>
 body{
@@ -16,31 +16,40 @@ canvas{
     background:#444;
 }
 </style>
-
 </head>
+
 <body>
 
 <canvas id="gameCanvas" width="800" height="400"></canvas>
 
 <script>
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
+// generar color aleatorio
+function randomColor(){
+    const r = Math.floor(Math.random()*255);
+    const g = Math.floor(Math.random()*255);
+    const b = Math.floor(Math.random()*255);
+    return "rgb(" + r + "," + g + "," + b + ")";
+}
 
 const player = {
     x:100,
     y:300,
-    width:40,
-    height:20,
+    width:20,
+    height:60, // vertical
     speed:5,
     velY:0,
     gravity:0.6,
     jumpPower:-12,
-    onGround:false
+    onGround:false,
+    color: randomColor()
 };
 
 const keys = {};
 
-// Controles
 window.addEventListener("keydown", e=>{
     keys[e.key.toLowerCase()] = true;
 });
@@ -51,23 +60,19 @@ window.addEventListener("keyup", e=>{
 
 function update(){
 
-    // izquierda
     if(keys["a"]){
         player.x -= player.speed;
     }
 
-    // derecha
     if(keys["d"]){
         player.x += player.speed;
     }
 
-    // salto
     if(keys["w"] && player.onGround){
         player.velY = player.jumpPower;
         player.onGround = false;
     }
 
-    // gravedad
     player.velY += player.gravity;
     player.y += player.velY;
 
@@ -78,11 +83,8 @@ function update(){
         player.onGround = true;
     }
 
-    // limites pantalla
-    if(player.x < 0){
-        player.x = 0;
-    }
-
+    // límites pantalla
+    if(player.x < 0) player.x = 0;
     if(player.x + player.width > canvas.width){
         player.x = canvas.width - player.width;
     }
@@ -94,10 +96,10 @@ function draw(){
 
     // suelo
     ctx.fillStyle = "green";
-    ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+    ctx.fillRect(0, canvas.height-10, canvas.width, 10);
 
-    // jugador (pastilla)
-    ctx.fillStyle = "red";
+    // jugador
+    ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
 }
 
@@ -108,6 +110,11 @@ function gameLoop(){
 }
 
 gameLoop();
+
+</script>
+
+</body>
+</html>
 </script>
 
 </body>
